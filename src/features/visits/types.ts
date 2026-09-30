@@ -1,6 +1,4 @@
-// Purpose: Define visit types, including the dishes attached to each visit.
-
-import type { Dish } from '../dishes/types'
+// Purpose: Define the saved visit types used by the Diary.
 
 export interface Visit {
   id: string
@@ -21,5 +19,4 @@ export interface VisitPlace {
 
 export interface VisitWithPlace extends Visit {
   place: VisitPlace | null
-  dishes: Dish[]
 }

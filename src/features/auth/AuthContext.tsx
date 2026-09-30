@@ -39,7 +39,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     loading,
     signIn: (email, password) =>
       supabase.auth.signInWithPassword({ email, password }),
-    signUp: (email, password) => supabase.auth.signUp({ email, password }),
+    signUp: (email, password, displayName) =>
+      supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+          },
+        },
+      }),
     signOut: () => supabase.auth.signOut(),
   }
 

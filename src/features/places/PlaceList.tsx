@@ -1,26 +1,21 @@
-// Purpose: Display saved places and let members update status or favorites.
+// Purpose: Display wishlist places and let members visit or remove them.
 
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useSpace } from '../spaces/useSpace'
-import {
-  getPlaces,
-  togglePlaceFavorite,
-  updatePlaceStatus,
-} from './placeService'
-import type { Place, PlaceStatus } from './types'
+import { deletePlace, getPlaces } from './placeService'
+import type { Place } from './types'
 
 type PlaceListProps = {
   title: string
-  statusFilter?: PlaceStatus
-  refreshKey?: number
 }
 
 export function PlaceList({
   title,
-  statusFilter,
-  refreshKey = 0,
 }: PlaceListProps) {
   const { activeSpace } = useSpace()
+  const activeSpaceId = activeSpace?.id
+  const navigate = useNavigate()
   const [places, setPlaces] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -31,7 +26,7 @@ export function PlaceList({
     let mounted = true
 
     async function loadPlaces() {
-      if (!activeSpace) {
+      if (!activeSpaceId) {
         setPlaces([])
         setLoading(false)
         return
@@ -41,7 +36,7 @@ export function PlaceList({
       setError(null)
 
       try {
-        const savedPlaces = await getPlaces(activeSpace.id)
+        const savedPlaces = await getPlaces(activeSpaceId)
 
         if (mounted) {
           setPlaces(savedPlaces)
@@ -66,50 +61,35 @@ export function PlaceList({
     return () => {
       mounted = false
     }
-  }, [activeSpace?.id, refreshKey, reloadKey])
+  }, [activeSpaceId, reloadKey])
 
-  async function handleStatusChange(
-    placeId: string,
-    nextStatus: PlaceStatus,
-  ) {
-    setBusyPlaceId(placeId)
-    setError(null)
+  async function handleDeletePlace(place: Place) {
+    if (!activeSpace) return
 
-    try {
-      await updatePlaceStatus(placeId, nextStatus)
-      setReloadKey((currentKey) => currentKey + 1)
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Unable to update the place.',
-      )
-    } finally {
-      setBusyPlaceId(null)
-    }
-  }
+    const confirmed = window.confirm(
+      `Remove "${place.name}" from your wishlist?`,
+    )
 
-  async function handleFavoriteToggle(place: Place) {
+    if (!confirmed) return
+
     setBusyPlaceId(place.id)
     setError(null)
 
     try {
-      await togglePlaceFavorite(place.id, !place.is_favorite)
+      await deletePlace(activeSpace.id, place.id)
       setReloadKey((currentKey) => currentKey + 1)
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : 'Unable to update the favorite.',
+          : 'Unable to remove this place.',
       )
     } finally {
       setBusyPlaceId(null)
     }
   }
 
-  const visiblePlaces = statusFilter
-    ? places.filter((place) => place.status === statusFilter)
-    : places
+  const visiblePlaces = places.filter((place) => place.status === 'wishlist')
 
   return (
     <section className="rounded-3xl border border-[#eadfd6] bg-white p-6 shadow-sm">
@@ -145,54 +125,40 @@ export function PlaceList({
           {visiblePlaces.map((place) => (
             <article
               key={place.id}
-              className="rounded-2xl bg-[#fffaf5] p-4"
+              className="relative rounded-2xl bg-[#fffaf5] p-4"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-[#34251f]">
-                    {place.name}
-                  </h3>
+              <button
+                type="button"
+                onClick={() => void handleDeletePlace(place)}
+                disabled={busyPlaceId === place.id}
+                aria-label={`Remove ${place.name} from wishlist`}
+                title="Remove from wishlist"
+                className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full text-2xl leading-none text-[#c9573a] hover:bg-[#fff0ed] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busyPlaceId === place.id ? '…' : '×'}
+              </button>
 
-                  <p className="mt-1 text-sm text-[#806f64]">
-                    {place.address ?? 'Address unavailable'}
-                  </p>
-                </div>
+              <div className="pr-10">
+                <h3 className="font-semibold text-[#34251f]">
+                  {place.name}
+                </h3>
 
-                <button
-                  type="button"
-                  onClick={() => void handleFavoriteToggle(place)}
-                  disabled={busyPlaceId === place.id}
-                  aria-label={
-                    place.is_favorite
-                      ? `Remove ${place.name} from favorites`
-                      : `Add ${place.name} to favorites`
-                  }
-                  className="text-2xl disabled:opacity-50"
-                >
-                  {place.is_favorite ? '★' : '☆'}
-                </button>
+                <p className="mt-1 text-sm text-[#806f64]">
+                  {place.address ?? 'Address unavailable'}
+                </p>
               </div>
 
-              <div className="mt-4 flex items-center gap-2">
-                <select
-                  value={place.status}
-                  disabled={busyPlaceId === place.id}
-                  onChange={(event) =>
-                    void handleStatusChange(
-                      place.id,
-                      event.target.value as PlaceStatus,
-                    )
-                  }
-                  className="rounded-xl border border-[#ddc9bb] bg-white px-3 py-2 text-sm"
-                >
-                  <option value="wishlist">Want to try</option>
-                  <option value="visited">Visited</option>
-                </select>
-
-                <span className="text-xs text-[#806f64]">
-                  {place.is_favorite ? 'Favorite' : 'Not a favorite'}
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate('/add', {
+                    state: { wishlistPlace: place },
+                  })
+                }
+                className="mt-4 rounded-xl bg-[#34251f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#4a352c]"
+              >
+                Visited
+              </button>
             </article>
           ))}
         </div>

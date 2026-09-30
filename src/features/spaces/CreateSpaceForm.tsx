@@ -51,7 +51,7 @@ export function CreateSpaceForm({ onCreated }: CreateSpaceFormProps) {
           required
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="1 + 1"
+          placeholder="Space name"
           className="mt-2 w-full rounded-2xl border border-[#ddc9bb] bg-[#fffaf5] px-4 py-3 outline-none focus:border-[#c75b32] focus:ring-4 focus:ring-[#fbe4d7]"
         />
       </label>

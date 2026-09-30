@@ -1,7 +1,6 @@
-// Purpose: Load visits together with their place and dishes.
+// Purpose: Load visits together with their place details.
 
 import { supabase } from '../../lib/supabase'
-import type { Dish } from '../dishes/types'
 import type { Visit, VisitPlace, VisitWithPlace } from './types'
 
 export type CreateVisitInput = {
@@ -11,6 +10,14 @@ export type CreateVisitInput = {
   overallRating: number | null
   note: string | null
   createdBy: string
+}
+
+export type UpdateVisitInput = {
+  spaceId: string
+  visitId: string
+  visitedAt: string
+  overallRating: number | null
+  note: string | null
 }
 
 export async function createVisit(
@@ -48,10 +55,106 @@ export async function createVisit(
   return data as Visit
 }
 
+export async function updateVisit(
+  input: UpdateVisitInput,
+): Promise<Visit> {
+  const { data, error } = await supabase
+    .from('visits')
+    .update({
+      visited_at: input.visitedAt,
+      overall_rating: input.overallRating,
+      note: input.note,
+    })
+    .eq('id', input.visitId)
+    .eq('space_id', input.spaceId)
+    .select()
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return data as Visit
+}
+
+export async function deleteVisit(
+  spaceId: string,
+  visitId: string,
+  placeId: string,
+): Promise<void> {
+  // Remove the visit's storage files before deleting the database rows.
+  const { data: photos, error: photosError } = await supabase
+    .from('photos')
+    .select('storage_path')
+    .eq('space_id', spaceId)
+    .eq('visit_id', visitId)
+
+  if (photosError) {
+    throw photosError
+  }
+
+  const storagePaths = (photos ?? []).map(
+    (photo) => photo.storage_path as string,
+  )
+
+  if (storagePaths.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from('visit-photos')
+      .remove(storagePaths)
+
+    if (storageError) {
+      throw storageError
+    }
+  }
+
+  const { error: photoRowsError } = await supabase
+    .from('photos')
+    .delete()
+    .eq('space_id', spaceId)
+    .eq('visit_id', visitId)
+
+  if (photoRowsError) {
+    throw photoRowsError
+  }
+
+  const { error: visitError } = await supabase
+    .from('visits')
+    .delete()
+    .eq('id', visitId)
+    .eq('space_id', spaceId)
+
+  if (visitError) {
+    throw visitError
+  }
+
+  // Keep the restaurant saved, but return it to the wishlist when no visits remain.
+  const { count, error: remainingError } = await supabase
+    .from('visits')
+    .select('id', { count: 'exact', head: true })
+    .eq('space_id', spaceId)
+    .eq('place_id', placeId)
+
+  if (remainingError) {
+    throw remainingError
+  }
+
+  if (count === 0) {
+    const { error: placeError } = await supabase
+      .from('places')
+      .update({ status: 'wishlist' })
+      .eq('id', placeId)
+      .eq('space_id', spaceId)
+
+    if (placeError) {
+      throw placeError
+    }
+  }
+}
+
 export async function getVisits(
   spaceId: string,
 ): Promise<VisitWithPlace[]> {
-  // Load each visit, its restaurant, and its dishes.
+  // Load each visit and its restaurant.
   const { data, error } = await supabase
     .from('visits')
     .select(`
@@ -67,16 +170,6 @@ export async function getVisits(
         id,
         name,
         address
-      ),
-      dishes (
-        id,
-        space_id,
-        visit_id,
-        name,
-        rating,
-        comment,
-        created_by,
-        created_at
       )
     `)
     .eq('space_id', spaceId)
@@ -91,7 +184,6 @@ export async function getVisits(
   // array depending on the relationship metadata, so normalize it here.
   type VisitQueryRow = Omit<VisitWithPlace, 'place'> & {
     place: VisitPlace | VisitPlace[] | null
-    dishes: Dish[]
   }
 
   const rows = (data ?? []) as unknown as VisitQueryRow[]

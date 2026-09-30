@@ -6,7 +6,7 @@ export type AuthContextValue = {
   session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => ReturnType<typeof supabase.auth.signInWithPassword>
-  signUp: (email: string, password: string) => ReturnType<typeof supabase.auth.signUp>
+  signUp: (email: string, password: string, displayName?: string) => ReturnType<typeof supabase.auth.signUp>
   signOut: () => ReturnType<typeof supabase.auth.signOut>
 }
 

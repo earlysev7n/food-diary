@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 const navigation = [
   { label: 'Map', to: '/', icon: '⌖' },
@@ -9,9 +9,18 @@ const navigation = [
 ]
 
 export function AppShell() {
+  const location = useLocation()
+  const isMapRoute = location.pathname === '/'
+
   return (
     <div className="min-h-screen bg-[#fffaf5]">
-      <main className="mx-auto min-h-screen w-full max-w-xl px-5 pb-28 pt-6">
+      <main
+        className={`mx-auto w-full ${
+          isMapRoute
+            ? 'h-[100dvh] max-w-7xl overflow-hidden px-5 pb-24 pt-4 md:px-8 md:pt-6'
+            : 'min-h-screen max-w-xl px-5 pb-28 pt-6'
+        }`}
+      >
         <Outlet />
       </main>
 

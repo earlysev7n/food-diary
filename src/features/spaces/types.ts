@@ -15,7 +15,6 @@ export interface SpaceMember {
 }
 
 export interface SpaceMemberProfile extends SpaceMember {
-  username: string | null
   display_name: string | null
   avatar_url: string | null
 }

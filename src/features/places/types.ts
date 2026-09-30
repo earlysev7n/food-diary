@@ -11,7 +11,6 @@ export interface Place {
   longitude: number
   external_place_id: string | null
   status: PlaceStatus
-  is_favorite: boolean
   created_by: string
   created_at: string
 }

@@ -110,7 +110,7 @@ export async function getSpaceMembers(
 
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url')
+    .select('id, display_name, avatar_url')
     .in('id', userIds)
 
   if (profileError) {
@@ -119,7 +119,6 @@ export async function getSpaceMembers(
 
   const profiles = (profileData ?? []) as Array<{
     id: string
-    username: string | null
     display_name: string | null
     avatar_url: string | null
   }>
@@ -133,9 +132,52 @@ export async function getSpaceMembers(
 
     return {
       ...member,
-      username: profile?.username ?? null,
       display_name: profile?.display_name ?? null,
       avatar_url: profile?.avatar_url ?? null,
     }
   })
+}
+
+export async function deleteSpace(spaceId: string): Promise<void> {
+  // Remove the Space's private photo files before deleting its database rows.
+  const { data: photos, error: photosError } = await supabase
+    .from('photos')
+    .select('storage_path')
+    .eq('space_id', spaceId)
+
+  if (photosError) {
+    throw photosError
+  }
+
+  const storagePaths = (photos ?? []).map(
+    (photo) => photo.storage_path as string,
+  )
+
+  if (storagePaths.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from('visit-photos')
+      .remove(storagePaths)
+
+    if (storageError) {
+      throw storageError
+    }
+  }
+
+  const { error } = await supabase.rpc('delete_space', {
+    input_space_id: spaceId,
+  })
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function leaveSpace(spaceId: string): Promise<void> {
+  const { error } = await supabase.rpc('leave_space', {
+    input_space_id: spaceId,
+  })
+
+  if (error) {
+    throw error
+  }
 }

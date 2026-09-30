@@ -14,6 +14,7 @@ import { useUserLocation } from '../places/useUserLocation'
 
 type MapViewProps = {
   places?: Place[]
+  className?: string
 }
 
 const INITIAL_CENTER: [number, number] = [122.5621, 10.7202]
@@ -38,16 +39,14 @@ const openStreetMapStyle: StyleSpecification = {
 }
 
 function getMarkerColor(place: Place) {
-  // Favorites use the warm app accent color.
-  if (place.is_favorite) {
-    return '#c75b32'
-  }
-
   // Visited and wishlist places get different colors.
   return place.status === 'visited' ? '#367347' : '#d28b41'
 }
 
-export function MapView({ places = [] }: MapViewProps) {
+export function MapView({
+  places = [],
+  className = 'h-[32rem]',
+}: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markersRef = useRef<Marker[]>([])
@@ -60,13 +59,15 @@ export function MapView({ places = [] }: MapViewProps) {
   } = useUserLocation()
 
   useEffect(() => {
-    if (!mapContainer.current) {
+    const container = mapContainer.current
+
+    if (!container) {
       return
     }
 
     // Create the map once when the component mounts.
     const map = new MapLibreMap({
-      container: mapContainer.current,
+      container,
       style: openStreetMapStyle,
       center: INITIAL_CENTER,
       zoom: 13,
@@ -83,8 +84,14 @@ export function MapView({ places = [] }: MapViewProps) {
 
     mapRef.current = map
 
+    const resizeObserver = new ResizeObserver(() => {
+      map.resize()
+    })
+    resizeObserver.observe(container)
+
     return () => {
       // Remove the map and all related browser resources.
+      resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
     }
@@ -155,14 +162,16 @@ export function MapView({ places = [] }: MapViewProps) {
   }, [userLocation])
 
   return (
-    <div className="relative h-[32rem] w-full overflow-hidden rounded-[2rem] border border-[#eadfd6] shadow-sm">
+    <div
+      className={`relative w-full overflow-hidden rounded-[2rem] border border-[#eadfd6] shadow-sm ${className}`}
+    >
       <div ref={mapContainer} className="h-full w-full" />
 
       <button
         type="button"
         onClick={() => void locate()}
         disabled={locating}
-        className="absolute left-3 top-3 z-10 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-[#34251f] shadow disabled:opacity-60"
+        className="absolute left-3 top-3 z-10 max-w-[calc(100%-6rem)] truncate rounded-xl bg-white px-3 py-2 text-xs font-semibold text-[#34251f] shadow disabled:opacity-60 sm:text-sm"
       >
         {locating ? 'Finding you…' : 'Refresh my location'}
       </button>

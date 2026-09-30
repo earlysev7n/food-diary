@@ -4,9 +4,13 @@ import type { SpaceMemberProfile } from './types'
 
 type MemberListProps = {
   spaceId: string | null
+  refreshKey?: number
 }
 
-export function MemberList({ spaceId }: MemberListProps) {
+export function MemberList({
+  spaceId,
+  refreshKey = 0,
+}: MemberListProps) {
   const [members, setMembers] = useState<SpaceMemberProfile[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +53,7 @@ export function MemberList({ spaceId }: MemberListProps) {
     return () => {
       active = false
     }
-  }, [spaceId])
+  }, [spaceId, refreshKey])
 
   if (!spaceId) {
     return null
@@ -74,11 +78,23 @@ export function MemberList({ spaceId }: MemberListProps) {
               key={member.id}
               className="flex items-center justify-between rounded-2xl bg-[#fffaf5] px-4 py-3"
             >
-              <span className="font-medium text-[#34251f]">
-                {member.display_name ||
-                  member.username ||
-                  `User ${member.user_id.slice(0, 8)}`}
-              </span>
+              <div className="flex min-w-0 items-center gap-3">
+                {member.avatar_url ? (
+                  <img
+                    src={member.avatar_url}
+                    alt=""
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-[#fbe4d7] text-sm font-semibold text-[#c75b32]">
+                    {(member.display_name?.[0] ?? '?').toUpperCase()}
+                  </div>
+                )}
+
+                <span className="truncate font-medium text-[#34251f]">
+                  {member.display_name || 'New member'}
+                </span>
+              </div>
 
               <span className="text-xs capitalize text-[#806f64]">
                 {member.role}

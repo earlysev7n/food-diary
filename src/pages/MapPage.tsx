@@ -8,6 +8,7 @@ import { MapView } from '../features/map/MapView'
 
 export function MapPage() {
   const { activeSpace } = useSpace()
+  const activeSpaceId = activeSpace?.id
   const [places, setPlaces] = useState<Place[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -16,7 +17,7 @@ export function MapPage() {
     let mounted = true
 
     async function loadPlaces() {
-      if (!activeSpace) {
+      if (!activeSpaceId) {
         setPlaces([])
         setLoading(false)
         return
@@ -27,7 +28,7 @@ export function MapPage() {
 
       try {
         // Load only places belonging to the selected Space.
-        const savedPlaces = await getPlaces(activeSpace.id)
+        const savedPlaces = await getPlaces(activeSpaceId)
 
         if (mounted) {
           setPlaces(savedPlaces)
@@ -52,11 +53,11 @@ export function MapPage() {
     return () => {
       mounted = false
     }
-  }, [activeSpace?.id])
+  }, [activeSpaceId])
 
   return (
-    <section className="space-y-6">
-      <header>
+    <section className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+      <header className="shrink-0">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#c75b32]">
           Shared food diary
         </p>
@@ -82,11 +83,10 @@ export function MapPage() {
         </p>
       )}
 
-      <MapView places={places} />
+      <MapView places={places} className="min-h-0 flex-1" />
 
-      <p className="text-center text-sm text-[#806f64]">
-        Green markers are visited, orange markers are wishlist places,
-        and red markers are favorites.
+      <p className="shrink-0 text-center text-xs text-[#806f64] sm:text-sm">
+        Green markers are visited places. Orange markers are wishlist places.
       </p>
     </section>
   )

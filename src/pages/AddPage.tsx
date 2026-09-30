@@ -1,11 +1,24 @@
 // Purpose: Provide the Add tab for searching and saving places.
 
-import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { PlaceSearchForm } from '../features/places/PlaceSearchForm'
-import { PlaceList } from '../features/places/PlaceList'
+import type { Place } from '../features/places/types'
+
+type AddPageLocationState = {
+  wishlistPlace?: Place
+}
 
 export function AddPage() {
-  const [refreshKey, setRefreshKey] = useState(0)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const wishlistPlace =
+    (location.state as AddPageLocationState | null)?.wishlistPlace ?? null
+
+  function handleSaved() {
+    if (wishlistPlace) {
+      navigate('/diary', { replace: true })
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -15,17 +28,13 @@ export function AddPage() {
         </p>
 
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          Add a food spot
+          {wishlistPlace ? 'Log a visit' : 'Add a food spot'}
         </h1>
       </header>
 
       <PlaceSearchForm
-        onSaved={() => setRefreshKey((currentKey) => currentKey + 1)}
-      />
-
-      <PlaceList
-        title="Saved food spots"
-        refreshKey={refreshKey}
+        initialPlace={wishlistPlace}
+        onSaved={wishlistPlace ? handleSaved : undefined}
       />
     </section>
   )

@@ -1,12 +1,8 @@
-// Purpose: Combine the visit form and diary timeline.
+// Purpose: Show the saved visit timeline and its editable details.
 
-import { useState } from 'react'
-import { VisitForm } from '../features/visits/VisitForm'
 import { VisitList } from '../features/visits/VisitList'
 
 export function DiaryPage() {
-  const [refreshKey, setRefreshKey] = useState(0)
-
   return (
     <section className="space-y-4">
       <header>
@@ -19,17 +15,11 @@ export function DiaryPage() {
         </h1>
 
         <p className="mt-2 text-[#806f64]">
-          Record the meals and memories you want to keep.
+          Your saved meals, memories, ratings, and photos in one timeline.
         </p>
       </header>
 
-      <VisitForm
-        onSaved={() =>
-          setRefreshKey((currentKey) => currentKey + 1)
-        }
-      />
-
-      <VisitList refreshKey={refreshKey} />
+      <VisitList />
     </section>
   )
 }

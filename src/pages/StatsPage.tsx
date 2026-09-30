@@ -122,9 +122,7 @@ export function StatsPage() {
               <StatCard label="Places saved" value={stats.totalPlaces} />
               <StatCard label="Places visited" value={stats.visitedPlaces} />
               <StatCard label="Want to try" value={stats.wishlistPlaces} />
-              <StatCard label="Favorites" value={stats.favoritePlaces} />
               <StatCard label="Visits" value={stats.totalVisits} />
-              <StatCard label="Dishes" value={stats.totalDishes} />
               <StatCard label="Photos" value={stats.totalPhotos} />
               <StatCard
                 label="Average rating"
@@ -147,14 +145,6 @@ export function StatsPage() {
                 Most visited:{' '}
                 <strong>
                   {stats.mostVisitedPlace ?? 'No visits yet'}
-                </strong>
-              </p>
-              <p className="rounded-2xl bg-[#fffaf5] p-4">
-                Highest-rated dish:{' '}
-                <strong>
-                  {stats.topDish
-                    ? `${stats.topDish.name} (${stats.topDish.rating}/5)`
-                    : 'No rated dishes yet'}
                 </strong>
               </p>
             </div>

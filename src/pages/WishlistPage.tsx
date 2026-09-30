@@ -17,7 +17,6 @@ export function WishlistPage() {
 
       <PlaceList
         title="Wishlist places"
-        statusFilter="wishlist"
       />
     </section>
   )
