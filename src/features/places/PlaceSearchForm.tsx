@@ -9,11 +9,14 @@ import { VisitDraftFields } from '../visits/VisitDraftFields'
 import { createPlace, findDuplicatePlace } from './placeService'
 import {
   reverseGeocode,
+  getPlaceResultName,
+  getSearchSuggestion,
+  rankSearchResults,
   searchPlaces,
   type NominatimResult,
   type SearchLocation,
 } from './placeSearch'
-import type { Place, PlaceStatus } from './types'
+import type { Place, PlaceStatus, PublicFoodSpot } from './types'
 import { useUserLocation } from './useUserLocation'
 
 function getTodayDate() {
@@ -25,13 +28,32 @@ function getTodayDate() {
   return `${year}-${month}-${day}`
 }
 
+function publicFoodSpotToSearchResult(
+  spot: PublicFoodSpot,
+): NominatimResult {
+  return {
+    place_id: spot.osmId,
+    osm_type: spot.osmType,
+    display_name: spot.address
+      ? `${spot.name}, ${spot.address}`
+      : spot.name,
+    lat: String(spot.latitude),
+    lon: String(spot.longitude),
+    namedetails: {
+      name: spot.name,
+    },
+  }
+}
+
 type PlaceSearchFormProps = {
   initialPlace?: Place | null
+  initialFoodSpot?: PublicFoodSpot | null
   onSaved?: (place: Place) => void
 }
 
 export function PlaceSearchForm({
   initialPlace = null,
+  initialFoodSpot = null,
   onSaved,
 }: PlaceSearchFormProps) {
   const { session } = useAuth()
@@ -43,9 +65,16 @@ export function PlaceSearchForm({
     locate,
   } = useUserLocation()
 
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<NominatimResult[]>([])
-  const [selected, setSelected] = useState<NominatimResult | null>(null)
+  const initialSearchResult = initialFoodSpot
+    ? publicFoodSpotToSearchResult(initialFoodSpot)
+    : null
+  const [query, setQuery] = useState(initialFoodSpot?.name ?? '')
+  const [results, setResults] = useState<NominatimResult[]>(
+    initialSearchResult ? [initialSearchResult] : [],
+  )
+  const [selected, setSelected] = useState<NominatimResult | null>(
+    initialSearchResult,
+  )
   const [status, setStatus] = useState<PlaceStatus>(
     initialPlace ? 'visited' : 'wishlist',
   )
@@ -58,6 +87,7 @@ export function PlaceSearchForm({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [suggestion, setSuggestion] = useState<string | null>(null)
   const isConvertingWishlist = initialPlace !== null
 
   function resetVisitDetails() {
@@ -110,20 +140,22 @@ export function PlaceSearchForm({
     }
   }, [coordinates, initialPlace])
 
-  async function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function runSearch(searchQuery: string) {
     setError(null)
     setMessage(null)
     setSelected(null)
+    setSuggestion(null)
     setSearching(true)
 
     try {
       // The optional location biases results toward the user's area.
-      const matches = await searchPlaces(query, location ?? undefined)
-      setResults(matches)
+      const matches = await searchPlaces(searchQuery, location ?? undefined)
+      const rankedMatches = rankSearchResults(searchQuery, matches)
+      setResults(rankedMatches)
+      setSuggestion(getSearchSuggestion(searchQuery, rankedMatches))
 
-      if (matches.length === 0) {
-        setMessage('No places found. Try the exact name and city.')
+      if (rankedMatches.length === 0) {
+        setMessage('No places found. Check the spelling or add a city.')
       }
     } catch (caughtError) {
       setError(
@@ -133,6 +165,28 @@ export function PlaceSearchForm({
       )
     } finally {
       setSearching(false)
+    }
+  }
+
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void runSearch(query)
+  }
+
+  function handleSuggestionClick() {
+    if (!suggestion) {
+      return
+    }
+
+    const suggestedResult = results.find(
+      (result) => getPlaceResultName(result) === suggestion,
+    )
+
+    setQuery(suggestion)
+    setSuggestion(null)
+
+    if (suggestedResult) {
+      setSelected(suggestedResult)
     }
   }
 
@@ -177,7 +231,9 @@ export function PlaceSearchForm({
           selected.namedetails?.name ??
           selected.display_name.split(',')[0]
 
-        const externalPlaceId = String(selected.place_id)
+        const externalPlaceId = selected.osm_type
+          ? `osm:${selected.osm_type}:${selected.place_id}`
+          : String(selected.place_id)
         existingPlace = await findDuplicatePlace(activeSpace.id, {
           name: placeName,
           address: selected.display_name,
@@ -278,7 +334,12 @@ export function PlaceSearchForm({
               required
               type="search"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setResults([])
+                setSelected(null)
+                setSuggestion(null)
+              }}
               placeholder="Search restaurant or food spot"
               className="min-w-0 flex-1 rounded-2xl border border-[#ddc9bb] bg-[#fffaf5] px-4 py-3 outline-none focus:border-[#c75b32] focus:ring-4 focus:ring-[#fbe4d7]"
             />
@@ -329,6 +390,17 @@ export function PlaceSearchForm({
         </p>
       )}
 
+      {suggestion && (
+        <button
+          type="button"
+          onClick={handleSuggestionClick}
+          className="mt-4 w-full rounded-2xl border border-[#e9c5ae] bg-[#fff7ef] px-4 py-3 text-left text-sm text-[#59483f]"
+        >
+          Did you mean{' '}
+          <span className="font-semibold text-[#c75b32]">{suggestion}</span>?
+        </button>
+      )}
+
       {!isConvertingWishlist && results.length > 0 && (
         <ul className="mt-4 space-y-2">
           {results.map((result) => {
@@ -346,8 +418,7 @@ export function PlaceSearchForm({
                   }`}
                 >
                   <span className="font-semibold text-[#34251f]">
-                    {result.namedetails?.name ??
-                      result.display_name.split(',')[0]}
+                    {getPlaceResultName(result)}
                   </span>
 
                   <span className="mt-1 block text-[#806f64]">

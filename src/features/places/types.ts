@@ -2,6 +2,17 @@
 
 export type PlaceStatus = 'wishlist' | 'visited'
 
+export type PublicFoodSpot = {
+  id: string
+  osmType: 'node' | 'way' | 'relation'
+  osmId: number
+  name: string
+  category: string
+  address: string | null
+  latitude: number
+  longitude: number
+}
+
 export interface Place {
   id: string
   space_id: string

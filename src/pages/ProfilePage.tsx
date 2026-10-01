@@ -204,7 +204,7 @@ export function ProfilePage() {
         refreshKey={profileRefreshKey}
       />
 
-      <div className="rounded-3xl border border-dashed border-[#ddc9bb] bg-white/60 p-6 text-center">
+      <div className="text-center">
         {error && (
           <p className="mb-4 text-sm text-[#ad3f2d]">{error}</p>
         )}

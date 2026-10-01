@@ -76,7 +76,7 @@ export function PhotoGallery({
   return (
     <div className="mt-4">
       <p className="text-sm font-semibold text-[#34251f]">
-        Photos ({photos.length})
+        Saved photos ({photos.length})
       </p>
 
       <div className="mt-2 grid grid-cols-2 gap-2">

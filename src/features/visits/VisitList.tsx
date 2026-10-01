@@ -100,7 +100,6 @@ export function VisitList() {
   }, [
     activeSpace?.id,
     visitRefreshKey,
-    photoRefreshKey,
   ])
 
   return (
@@ -199,23 +198,22 @@ export function VisitList() {
                 </p>
               )}
 
-              {activeSpace && editingVisitId === visit.id && (
-                <>
-                  {/* Purpose: Upload and display photos for this visit. */}
-                  <PhotoUpload
-                    spaceId={activeSpace.id}
-                    visitId={visit.id}
-                    onUploaded={() =>
-                      setPhotoRefreshKey((currentKey) => currentKey + 1)
-                    }
-                  />
+              {activeSpace && (
+                <PhotoGallery
+                  spaceId={activeSpace.id}
+                  visitId={visit.id}
+                  refreshKey={photoRefreshKey}
+                />
+              )}
 
-                  <PhotoGallery
-                    spaceId={activeSpace.id}
-                    visitId={visit.id}
-                    refreshKey={photoRefreshKey}
-                  />
-                </>
+              {activeSpace && editingVisitId === visit.id && (
+                <PhotoUpload
+                  spaceId={activeSpace.id}
+                  visitId={visit.id}
+                  onUploaded={() =>
+                    setPhotoRefreshKey((currentKey) => currentKey + 1)
+                  }
+                />
               )}
             </article>
           ))}

@@ -1,12 +1,14 @@
 // Purpose: Load places for the active Space and pass them to the map.
 
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getPlaces } from '../features/places/placeService'
-import type { Place } from '../features/places/types'
+import type { Place, PublicFoodSpot } from '../features/places/types'
 import { useSpace } from '../features/spaces/useSpace'
 import { MapView } from '../features/map/MapView'
 
 export function MapPage() {
+  const navigate = useNavigate()
   const { activeSpace } = useSpace()
   const activeSpaceId = activeSpace?.id
   const [places, setPlaces] = useState<Place[]>([])
@@ -55,6 +57,27 @@ export function MapPage() {
     }
   }, [activeSpaceId])
 
+  function handlePlaceAction(place: Place) {
+    if (place.status === 'visited') {
+      navigate('/diary')
+      return
+    }
+
+    navigate('/add', {
+      state: {
+        wishlistPlace: place,
+      },
+    })
+  }
+
+  function handlePublicFoodSpotAction(spot: PublicFoodSpot) {
+    navigate('/add', {
+      state: {
+        publicFoodSpot: spot,
+      },
+    })
+  }
+
   return (
     <section className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
       <header className="shrink-0">
@@ -83,10 +106,16 @@ export function MapPage() {
         </p>
       )}
 
-      <MapView places={places} className="min-h-0 flex-1" />
+      <MapView
+        places={places}
+        onPlaceAction={handlePlaceAction}
+        onPublicFoodSpotAction={handlePublicFoodSpotAction}
+        className="min-h-0 flex-1"
+      />
 
       <p className="shrink-0 text-center text-xs text-[#806f64] sm:text-sm">
-        Green markers are visited places. Orange markers are wishlist places.
+        Gray markers are public food spots. Green markers are visited places.
+        Orange markers are wishlist places.
       </p>
     </section>
   )
