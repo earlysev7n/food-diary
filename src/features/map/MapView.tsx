@@ -92,7 +92,6 @@ export function MapView({
   const userMarkerRef = useRef<Marker | null>(null)
   const [publicFoodSpots, setPublicFoodSpots] = useState<PublicFoodSpot[]>([])
   const [publicFoodLoading, setPublicFoodLoading] = useState(false)
-  const [publicFoodError, setPublicFoodError] = useState<string | null>(null)
   const {
     location: userLocation,
     loading: locating,
@@ -160,7 +159,6 @@ export function MapView({
         if (mounted) {
           setPublicFoodSpots([])
           setPublicFoodLoading(false)
-          setPublicFoodError(null)
         }
         return
       }
@@ -173,7 +171,6 @@ export function MapView({
       requestController = controller
 
       setPublicFoodLoading(true)
-      setPublicFoodError(null)
 
       try {
         const spots = await getPublicFoodSpots(
@@ -196,11 +193,11 @@ export function MapView({
           currentRequestId === requestId &&
           !controller.signal.aborted
         ) {
-          setPublicFoodError(
-            caughtError instanceof Error
-              ? caughtError.message
-              : 'Unable to load public food spots.',
+          console.warn(
+            'Public food spots are unavailable; continuing without public markers.',
+            caughtError,
           )
+          setPublicFoodSpots([])
         }
       } finally {
         if (mounted && currentRequestId === requestId) {
@@ -369,11 +366,6 @@ export function MapView({
         </p>
       )}
 
-      {publicFoodError && (
-        <p className="absolute bottom-3 left-3 right-3 z-10 rounded-xl bg-white/95 px-3 py-2 text-xs text-[#ad3f2d] shadow">
-          {publicFoodError}
-        </p>
-      )}
     </div>
   )
 }
