@@ -56,7 +56,7 @@ export function VisitDraftFields({
           <StarRating
             value={rating}
             onChange={onRatingChange}
-            label="Overall visit rating"
+            label="Your visit rating"
           />
         </div>
       </div>

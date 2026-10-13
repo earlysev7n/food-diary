@@ -1,6 +1,7 @@
 // Purpose: Display saved visits, memories, and photos in chronological order.
 
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PhotoGallery } from '../photos/PhotoGallery'
 import { PhotoUpload } from '../photos/PhotoUpload'
 import { useSpace } from '../spaces/useSpace'
@@ -26,6 +27,7 @@ function formatRating(rating: number | null) {
 
 export function VisitList() {
   const { activeSpace } = useSpace()
+  const navigate = useNavigate()
   const [visits, setVisits] = useState<VisitWithPlace[]>([])
   const [visitRefreshKey, setVisitRefreshKey] = useState(0)
   const [photoRefreshKey, setPhotoRefreshKey] = useState(0)
@@ -33,6 +35,15 @@ export function VisitList() {
   const [deletingVisitId, setDeletingVisitId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const visitCountsByPlace = new Map<string, number>()
+
+  for (const visit of visits) {
+    visitCountsByPlace.set(
+      visit.place_id,
+      (visitCountsByPlace.get(visit.place_id) ?? 0) + 1,
+    )
+  }
 
   async function handleDeleteVisit(visit: VisitWithPlace) {
     if (!activeSpace) return
@@ -168,6 +179,10 @@ export function VisitList() {
                 </p>
               )}
 
+              <p className="mt-2 text-sm font-semibold text-[#806f64]">
+                Visited: {visitCountsByPlace.get(visit.place_id) ?? 1}
+              </p>
+
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <StarRating
                   value={visit.average_rating}
@@ -207,17 +222,34 @@ export function VisitList() {
                 </div>
               )}
 
-              <button
-                type="button"
-                onClick={() =>
-                  setEditingVisitId((currentId) =>
-                    currentId === visit.id ? null : visit.id,
-                  )
-                }
-                className="mt-3 rounded-xl border border-[#ddc9bb] px-3 py-2 text-sm font-semibold text-[#59483f] hover:bg-white"
-              >
-                {editingVisitId === visit.id ? 'Close editor' : 'Edit visit'}
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {visit.place && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate('/add', {
+                        state: { wishlistPlace: visit.place },
+                      })
+                    }
+                    aria-label={`Add another visit to ${visit.place.name}`}
+                    className="rounded-xl bg-[#c75b32] px-3 py-2 text-sm font-semibold text-white hover:bg-[#ad4d2d]"
+                  >
+                    + Visited
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditingVisitId((currentId) =>
+                      currentId === visit.id ? null : visit.id,
+                    )
+                  }
+                  className="rounded-xl border border-[#ddc9bb] px-3 py-2 text-sm font-semibold text-[#59483f] hover:bg-white"
+                >
+                  {editingVisitId === visit.id ? 'Close editor' : 'Edit visit'}
+                </button>
+              </div>
 
               {editingVisitId === visit.id && activeSpace && (
                 <EditVisitForm

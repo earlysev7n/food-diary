@@ -194,8 +194,15 @@ export async function getVisits(
       created_at,
       place:places (
         id,
+        space_id,
         name,
-        address
+        address,
+        latitude,
+        longitude,
+        external_place_id,
+        status,
+        created_by,
+        created_at
       )
     `)
     .eq('space_id', spaceId)

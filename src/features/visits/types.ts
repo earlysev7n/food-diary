@@ -1,6 +1,7 @@
 // Purpose: Define the saved visit types used by the Diary.
 
 import type { VisitRating } from './visitRatingService'
+import type { Place } from '../places/types'
 
 export interface Visit {
   id: string
@@ -13,11 +14,7 @@ export interface Visit {
   created_at: string
 }
 
-export interface VisitPlace {
-  id: string
-  name: string
-  address: string | null
-}
+export type VisitPlace = Place
 
 export interface VisitWithPlace extends Visit {
   place: VisitPlace | null
