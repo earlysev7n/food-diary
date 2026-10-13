@@ -26,15 +26,45 @@ export function isVisitRatingsTableMissing(error: unknown) {
 
   const errorRecord = error as {
     code?: string
+  }
+
+  return (
+    errorRecord.code === '42P01' ||
+    errorRecord.code === 'PGRST205'
+  )
+}
+
+function isVisitRatingsPermissionDenied(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const errorRecord = error as {
+    code?: string
     message?: string
   }
   const message = errorRecord.message?.toLowerCase() ?? ''
 
   return (
-    errorRecord.code === '42P01' ||
-    errorRecord.code === 'PGRST205' ||
-    message.includes('visit_ratings')
+    errorRecord.code === '42501' ||
+    message.includes('row-level security')
   )
+}
+
+function getVisitRatingMutationError(error: unknown) {
+  if (isVisitRatingsTableMissing(error)) {
+    return new Error(
+      'Member ratings are not enabled yet. Run the visit ratings migration in Supabase first.',
+    )
+  }
+
+  if (isVisitRatingsPermissionDenied(error)) {
+    return new Error(
+      'Supabase blocked this rating. Make sure this account is a member of the active Space, then rerun the visit ratings policy SQL in Supabase.',
+    )
+  }
+
+  return error
 }
 
 function validateRating(rating: number) {
@@ -87,12 +117,7 @@ export async function saveVisitRating(
       .eq('user_id', input.userId)
 
     if (error) {
-      if (isVisitRatingsTableMissing(error)) {
-        throw new Error(
-          'Member ratings are not enabled yet. Run the visit ratings migration in Supabase first.',
-        )
-      }
-      throw error
+      throw getVisitRatingMutationError(error)
     }
 
     return null
@@ -116,12 +141,7 @@ export async function saveVisitRating(
     .single()
 
   if (error) {
-    if (isVisitRatingsTableMissing(error)) {
-      throw new Error(
-        'Member ratings are not enabled yet. Run the visit ratings migration in Supabase first.',
-      )
-    }
-    throw error
+    throw getVisitRatingMutationError(error)
   }
 
   return {
