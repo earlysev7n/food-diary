@@ -107,7 +107,7 @@ export function VisitList() {
   ])
 
   return (
-    <section className="rounded-3xl border border-[#eadfd6] bg-white p-6 shadow-sm">
+    <section className="space-y-4">
       <h2 className="text-xl font-semibold text-[#34251f]">
         Visit timeline
       </h2>
@@ -137,11 +137,11 @@ export function VisitList() {
       )}
 
       {!loading && visits.length > 0 && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-5">
           {visits.map((visit) => (
             <article
               key={visit.id}
-              className="relative rounded-2xl bg-[#fffaf5] p-4"
+              className="relative rounded-3xl border border-[#eadfd6] bg-[#fffaf5] p-5 shadow-sm"
             >
               <button
                 type="button"
