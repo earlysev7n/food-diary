@@ -160,16 +160,18 @@ export function ProfilePage() {
           <p className="mt-4 text-sm text-[#806f64]">
             Share this invite code:
           </p>
-          <code className="mt-2 inline-block rounded-xl bg-white px-4 py-2 font-semibold tracking-widest text-[#34251f]">
-            {activeSpace.invite_code}
-          </code>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <code className="inline-block rounded-xl bg-white px-4 py-2 font-semibold tracking-widest text-[#34251f]">
+              {activeSpace.invite_code}
+            </code>
 
-          <Link
-            to="/stats"
-            className="mt-5 inline-flex rounded-xl bg-[#34251f] px-4 py-2 text-sm font-semibold text-white"
-          >
-            View shared stats
-          </Link>
+            <Link
+              to="/stats"
+              className="inline-flex rounded-xl bg-[#34251f] px-4 py-2 text-sm font-semibold text-white"
+            >
+              View shared stats
+            </Link>
+          </div>
 
           <div className="mt-6 border-t border-[#e8c5b4] pt-5">
             <p className="text-sm font-semibold text-[#8e3825]">
