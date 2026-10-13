@@ -55,7 +55,11 @@ export async function getMySpaces(): Promise<Space[]> {
     throw error
   }
 
-  return (data ?? []).flatMap((membership) => membership.spaces)
+  const spaces = (data ?? []).flatMap((membership) => membership.spaces)
+
+  return Array.from(
+    new Map(spaces.map((space) => [space.id, space])).values(),
+  )
 }
 
 export async function joinSpaceByInviteCode(
