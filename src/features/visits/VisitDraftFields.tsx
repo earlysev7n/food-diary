@@ -47,7 +47,10 @@ export function VisitDraftFields({
 
       <div>
         <p className="text-sm font-medium text-[#59483f]">
-          Overall rating
+          Your rating
+        </p>
+        <p className="mt-1 text-xs text-[#806f64]">
+          Each member can add their own rating.
         </p>
         <div className="mt-2">
           <StarRating

@@ -1,6 +1,7 @@
 // Purpose: Calculate private, Space-scoped food statistics from existing tables.
 
 import { supabase } from '../../lib/supabase'
+import { isVisitRatingsTableMissing } from '../visits/visitRatingService'
 import type { SpaceStats } from './types'
 
 type PlaceRow = {
@@ -20,10 +21,15 @@ type PhotoRow = {
   id: string
 }
 
+type VisitRatingRow = {
+  visit_id: string
+  rating: number
+}
+
 export async function getSpaceStats(
   spaceId: string,
 ): Promise<SpaceStats> {
-  const [placesResult, visitsResult, photosResult] =
+  const [placesResult, visitsResult, photosResult, ratingsResult] =
     await Promise.all([
       supabase
         .from('places')
@@ -38,12 +44,22 @@ export async function getSpaceStats(
         .from('photos')
         .select('id')
         .eq('space_id', spaceId),
+      supabase
+        .from('visit_ratings')
+        .select('visit_id, rating')
+        .eq('space_id', spaceId),
     ])
 
+  const ratingsTableError =
+    ratingsResult.error &&
+    !isVisitRatingsTableMissing(ratingsResult.error)
+      ? ratingsResult.error
+      : null
   const firstError =
     placesResult.error ??
     visitsResult.error ??
-    photosResult.error
+    photosResult.error ??
+    ratingsTableError
 
   if (firstError) {
     throw firstError
@@ -52,13 +68,28 @@ export async function getSpaceStats(
   const places = (placesResult.data ?? []) as PlaceRow[]
   const visits = (visitsResult.data ?? []) as VisitRow[]
   const photos = (photosResult.data ?? []) as PhotoRow[]
+  const ratings = (ratingsResult.data ?? []) as VisitRatingRow[]
   const placeNames = new Map(
     places.map((place) => [place.id, place.name]),
   )
 
-  const ratings = visits
-    .map((visit) => visit.overall_rating)
-    .filter((rating): rating is number => rating !== null)
+  const ratingsByVisit = new Map<string, number[]>()
+
+  for (const rating of ratings) {
+    const visitRatings = ratingsByVisit.get(rating.visit_id) ?? []
+    visitRatings.push(Number(rating.rating))
+    ratingsByVisit.set(rating.visit_id, visitRatings)
+  }
+
+  const visitAverages = visits.map((visit) =>
+    getVisitAverage(
+      ratingsByVisit.get(visit.id) ?? [],
+      visit.overall_rating,
+    ),
+  )
+  const averageRatings = visitAverages.filter(
+    (rating): rating is number => rating !== null,
+  )
 
   const visitCounts = new Map<string, number>()
 
@@ -82,11 +113,11 @@ export async function getSpaceStats(
     totalVisits: visits.length,
     totalPhotos: photos.length,
     averageVisitRating:
-      ratings.length > 0
+      averageRatings.length > 0
         ? Number(
             (
-              ratings.reduce((total, rating) => total + rating, 0) /
-              ratings.length
+              averageRatings.reduce((total, rating) => total + rating, 0) /
+              averageRatings.length
             ).toFixed(1),
           )
         : null,
@@ -97,7 +128,24 @@ export async function getSpaceStats(
       id: visit.id,
       placeName: placeNames.get(visit.place_id) ?? 'Unknown place',
       visitedAt: visit.visited_at,
-      rating: visit.overall_rating,
+      rating: getVisitAverage(
+        ratingsByVisit.get(visit.id) ?? [],
+        visit.overall_rating,
+      ),
     })),
   }
+}
+
+function getVisitAverage(
+  ratings: number[],
+  legacyRating: number | null,
+) {
+  if (ratings.length === 0) {
+    return legacyRating
+  }
+
+  return Number(
+    (ratings.reduce((total, rating) => total + rating, 0) / ratings.length)
+      .toFixed(2),
+  )
 }

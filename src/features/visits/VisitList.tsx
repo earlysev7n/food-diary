@@ -5,6 +5,7 @@ import { PhotoGallery } from '../photos/PhotoGallery'
 import { PhotoUpload } from '../photos/PhotoUpload'
 import { useSpace } from '../spaces/useSpace'
 import { EditVisitForm } from './EditVisitForm'
+import { StarRating } from './StarRating'
 import { deleteVisit, getVisits } from './visitService'
 import type { VisitWithPlace } from './types'
 
@@ -16,8 +17,11 @@ function formatVisitDate(dateValue: string) {
 }
 
 function formatRating(rating: number | null) {
-  // Purpose: Display ratings as simple stars.
-  return rating ? '★'.repeat(rating) : 'No rating'
+  if (rating === null) {
+    return 'No rating'
+  }
+
+  return `${rating}/5`
 }
 
 export function VisitList() {
@@ -164,9 +168,44 @@ export function VisitList() {
                 </p>
               )}
 
-              <p className="mt-3 text-lg tracking-widest text-[#d28b41]">
-                {formatRating(visit.overall_rating)}
-              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <StarRating
+                  value={visit.average_rating}
+                  label="Average visit rating"
+                />
+                <span className="text-sm font-semibold text-[#806f64]">
+                  {formatRating(visit.average_rating)} average
+                </span>
+              </div>
+
+              {visit.ratings.length > 0 && (
+                <div className="mt-3 rounded-2xl bg-white p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#806f64]">
+                    Member ratings
+                  </p>
+                  <ul className="mt-2 space-y-2">
+                    {visit.ratings.map((rating) => (
+                      <li
+                        key={rating.id}
+                        className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                      >
+                        <span className="font-medium text-[#59483f]">
+                          {rating.display_name || 'Member'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <StarRating
+                            value={rating.rating}
+                            label={`${rating.display_name || 'Member'} rating`}
+                          />
+                          <span className="text-xs text-[#806f64]">
+                            {formatRating(rating.rating)}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <button
                 type="button"

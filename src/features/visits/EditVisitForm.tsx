@@ -1,6 +1,7 @@
 // Purpose: Edit an existing visit from the Diary timeline.
 
 import { type FormEvent, useState } from 'react'
+import { useAuth } from '../auth/useAuth'
 import { StarRating } from './StarRating'
 import { updateVisit } from './visitService'
 import type { VisitWithPlace } from './types'
@@ -19,7 +20,15 @@ export function EditVisitForm({
   onCancel,
 }: EditVisitFormProps) {
   const [visitedAt, setVisitedAt] = useState(visit.visited_at)
-  const [rating, setRating] = useState<number | null>(visit.overall_rating)
+  const { session } = useAuth()
+  const userId = session?.user.id ?? null
+  const existingRating = userId
+    ? visit.ratings.find((rating) => rating.user_id === userId)?.rating ??
+      (visit.ratings.length === 0 && visit.created_by === userId
+        ? visit.overall_rating
+        : null)
+    : null
+  const [rating, setRating] = useState<number | null>(existingRating)
   const [note, setNote] = useState(visit.note ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -30,11 +39,16 @@ export function EditVisitForm({
     setSaving(true)
 
     try {
+      if (!userId) {
+        throw new Error('You must be signed in to save a rating.')
+      }
+
       await updateVisit({
         spaceId,
         visitId: visit.id,
         visitedAt,
-        overallRating: rating,
+        userId,
+        rating,
         note: note.trim() || null,
       })
       onSaved?.()
@@ -57,6 +71,10 @@ export function EditVisitForm({
       <p className="text-sm font-semibold text-[#34251f]">
         Edit visit
       </p>
+      <p className="mt-1 text-xs text-[#806f64]">
+        You can edit your rating. Other members can see it but cannot change
+        it.
+      </p>
 
       <label className="mt-3 block text-sm font-medium text-[#59483f]">
         Date visited
@@ -70,7 +88,7 @@ export function EditVisitForm({
       </label>
 
       <div className="mt-3">
-        <p className="text-sm font-medium text-[#59483f]">Rating</p>
+        <p className="text-sm font-medium text-[#59483f]">Your rating</p>
         <div className="mt-1">
           <StarRating value={rating} onChange={setRating} />
         </div>

@@ -1,7 +1,17 @@
 // Purpose: Load visits together with their place details.
 
 import { supabase } from '../../lib/supabase'
-import type { Visit, VisitPlace, VisitWithPlace } from './types'
+import { getSpaceMembers } from '../spaces/spaceService'
+import type {
+  Visit,
+  VisitPlace,
+  VisitRatingWithMember,
+  VisitWithPlace,
+} from './types'
+import {
+  getVisitRatings,
+  saveVisitRating,
+} from './visitRatingService'
 
 export type CreateVisitInput = {
   spaceId: string
@@ -16,7 +26,8 @@ export type UpdateVisitInput = {
   spaceId: string
   visitId: string
   visitedAt: string
-  overallRating: number | null
+  userId: string
+  rating: number | null
   note: string | null
 }
 
@@ -52,6 +63,15 @@ export async function createVisit(
     throw placeError
   }
 
+  if (input.overallRating !== null) {
+    await saveVisitRating({
+      spaceId: input.spaceId,
+      visitId: (data as Visit).id,
+      userId: input.createdBy,
+      rating: input.overallRating,
+    })
+  }
+
   return data as Visit
 }
 
@@ -62,7 +82,6 @@ export async function updateVisit(
     .from('visits')
     .update({
       visited_at: input.visitedAt,
-      overall_rating: input.overallRating,
       note: input.note,
     })
     .eq('id', input.visitId)
@@ -73,6 +92,13 @@ export async function updateVisit(
   if (error) {
     throw error
   }
+
+  await saveVisitRating({
+    spaceId: input.spaceId,
+    visitId: input.visitId,
+    userId: input.userId,
+    rating: input.rating,
+  })
 
   return data as Visit
 }
@@ -188,10 +214,50 @@ export async function getVisits(
 
   const rows = (data ?? []) as unknown as VisitQueryRow[]
 
+  const visitIds = rows.map((row) => row.id)
+  const [ratings, members] = await Promise.all([
+    getVisitRatings(spaceId, visitIds),
+    getSpaceMembers(spaceId),
+  ])
+  const memberNames = new Map(
+    members.map((member) => [member.user_id, member.display_name]),
+  )
+  const ratingsByVisit = new Map<string, VisitRatingWithMember[]>()
+
+  for (const rating of ratings) {
+    const visitRatings = ratingsByVisit.get(rating.visit_id) ?? []
+    visitRatings.push({
+      ...rating,
+      display_name: memberNames.get(rating.user_id) ?? null,
+    })
+    ratingsByVisit.set(rating.visit_id, visitRatings)
+  }
+
   return rows.map((row) => ({
     ...row,
     place: Array.isArray(row.place)
       ? row.place[0] ?? null
       : row.place,
+    ratings: ratingsByVisit.get(row.id) ?? [],
+    average_rating: getAverageRating(
+      ratingsByVisit.get(row.id) ?? [],
+      row.overall_rating,
+    ),
   }))
+}
+
+function getAverageRating(
+  ratings: Array<{ rating: number }>,
+  legacyRating: number | null,
+) {
+  if (ratings.length === 0) {
+    return legacyRating
+  }
+
+  return Number(
+    (
+      ratings.reduce((total, rating) => total + rating.rating, 0) /
+      ratings.length
+    ).toFixed(2),
+  )
 }
