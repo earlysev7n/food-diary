@@ -1,6 +1,7 @@
 // Purpose: Display the private photos attached to a visit.
 
 import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import { deleteVisitPhoto, getVisitPhotos } from './photoService'
 import type { PhotoWithUrl } from './types'
 
@@ -53,8 +54,27 @@ export function PhotoGallery({
 
     void loadPhotos()
 
+    const channel = supabase
+      .channel(`visit-photos:${spaceId}:${visitId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'photos',
+          filter: `visit_id=eq.${visitId}`,
+        },
+        () => {
+          if (mounted) {
+            void loadPhotos()
+          }
+        },
+      )
+      .subscribe()
+
     return () => {
       mounted = false
+      void supabase.removeChannel(channel)
     }
   }, [spaceId, visitId, refreshKey])
 
