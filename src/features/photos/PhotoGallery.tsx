@@ -22,6 +22,26 @@ export function PhotoGallery({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null)
+  const [selectedPhoto, setSelectedPhoto] =
+    useState<PhotoWithUrl | null>(null)
+
+  useEffect(() => {
+    if (!selectedPhoto) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSelectedPhoto(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedPhoto])
 
   useEffect(() => {
     let mounted = true
@@ -135,12 +155,19 @@ export function PhotoGallery({
       <div className="mt-2 grid grid-cols-2 gap-2">
         {photos.map((photo) => (
           <div key={photo.id} className="relative">
-            <img
-              src={photo.signedUrl}
-              alt="Food memory"
-              loading="lazy"
-              className="aspect-square w-full rounded-2xl object-cover"
-            />
+            <button
+              type="button"
+              onClick={() => setSelectedPhoto(photo)}
+              aria-label="Open food memory photo"
+              className="block w-full rounded-2xl text-left focus:outline-none focus:ring-4 focus:ring-[#fbe4d7]"
+            >
+              <img
+                src={photo.signedUrl}
+                alt="Food memory"
+                loading="lazy"
+                className="aspect-square w-full rounded-2xl object-cover transition hover:brightness-95"
+              />
+            </button>
 
             {canDelete && (
               <button
@@ -160,6 +187,32 @@ export function PhotoGallery({
 
       {error && (
         <p className="mt-3 text-sm text-[#ad3f2d]">{error}</p>
+      )}
+
+      {selectedPhoto && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Food memory photo preview"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#34251f]/90 p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setSelectedPhoto(null)}
+            aria-label="Close photo preview"
+            className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white/95 text-2xl leading-none text-[#34251f] shadow-lg"
+          >
+            ×
+          </button>
+
+          <img
+            src={selectedPhoto.signedUrl}
+            alt="Food memory enlarged"
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[88dvh] max-w-full rounded-2xl object-contain shadow-2xl"
+          />
+        </div>
       )}
     </div>
   )
