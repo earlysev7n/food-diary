@@ -41,7 +41,7 @@ export function VisitDraftFields({
           type="date"
           value={visitedAt}
           onChange={(event) => onVisitedAtChange(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-[#ddc9bb] bg-white px-4 py-3"
+          className="mt-2 block min-w-0 w-full max-w-full rounded-2xl border border-[#ddc9bb] bg-white px-4 py-3 text-base leading-normal"
         />
       </label>
 
@@ -68,7 +68,7 @@ export function VisitDraftFields({
           onChange={(event) => onNoteChange(event.target.value)}
           placeholder="What do you remember about this visit?"
           rows={4}
-          className="mt-2 w-full resize-none rounded-2xl border border-[#ddc9bb] bg-white px-4 py-3"
+          className="mt-2 block min-w-0 w-full max-w-full resize-none rounded-2xl border border-[#ddc9bb] bg-white px-4 py-3 text-base leading-6"
         />
       </label>
 

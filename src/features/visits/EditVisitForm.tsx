@@ -83,7 +83,7 @@ export function EditVisitForm({
           type="date"
           value={visitedAt}
           onChange={(event) => setVisitedAt(event.target.value)}
-          className="mt-2 w-full rounded-xl border border-[#ddc9bb] bg-[#fffaf5] px-3 py-2"
+          className="mt-2 block min-w-0 w-full max-w-full rounded-xl border border-[#ddc9bb] bg-[#fffaf5] px-3 py-2 text-base leading-normal"
         />
       </label>
 
@@ -100,7 +100,7 @@ export function EditVisitForm({
           value={note}
           onChange={(event) => setNote(event.target.value)}
           rows={3}
-          className="mt-2 w-full resize-none rounded-xl border border-[#ddc9bb] bg-[#fffaf5] px-3 py-2"
+          className="mt-2 block min-w-0 w-full max-w-full resize-none rounded-xl border border-[#ddc9bb] bg-[#fffaf5] px-3 py-2 text-base leading-6"
         />
       </label>
 
