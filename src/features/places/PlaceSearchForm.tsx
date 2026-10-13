@@ -6,9 +6,11 @@ import { uploadVisitPhoto } from '../photos/photoService'
 import { useSpace } from '../spaces/useSpace'
 import { createVisit } from '../visits/visitService'
 import { VisitDraftFields } from '../visits/VisitDraftFields'
+import { ManualPlaceForm } from './ManualPlaceForm'
 import { createPlace, findDuplicatePlace } from './placeService'
 import {
   reverseGeocode,
+  DEFAULT_SEARCH_LOCATION,
   getPlaceResultName,
   getSearchSuggestion,
   rankSearchResults,
@@ -82,9 +84,12 @@ export function PlaceSearchForm({
   const [overallRating, setOverallRating] = useState<number | null>(null)
   const [note, setNote] = useState('')
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
-  const [location, setLocation] = useState<SearchLocation | null>(null)
+  const [location, setLocation] = useState<SearchLocation | null>(
+    DEFAULT_SEARCH_LOCATION,
+  )
   const [searching, setSearching] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [manualMode, setManualMode] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [suggestion, setSuggestion] = useState<string | null>(null)
@@ -140,11 +145,23 @@ export function PlaceSearchForm({
     }
   }, [coordinates, initialPlace])
 
+  useEffect(() => {
+    if (initialPlace || coordinates || !locationError) {
+      return
+    }
+
+    setLocation(DEFAULT_SEARCH_LOCATION)
+    setMessage(
+      `Location unavailable. Search is focused on ${DEFAULT_SEARCH_LOCATION.displayName}.`,
+    )
+  }, [coordinates, initialPlace, locationError])
+
   async function runSearch(searchQuery: string) {
     setError(null)
     setMessage(null)
     setSelected(null)
     setSuggestion(null)
+    setManualMode(false)
     setSearching(true)
 
     try {
@@ -339,6 +356,7 @@ export function PlaceSearchForm({
                 setResults([])
                 setSelected(null)
                 setSuggestion(null)
+                setManualMode(false)
               }}
               placeholder="Search restaurant or food spot"
               className="min-w-0 flex-1 rounded-2xl border border-[#ddc9bb] bg-[#fffaf5] px-4 py-3 outline-none focus:border-[#c75b32] focus:ring-4 focus:ring-[#fbe4d7]"
@@ -372,7 +390,7 @@ export function PlaceSearchForm({
 
           {locationError && (
             <p className="mt-2 text-xs text-[#ad3f2d]">
-              {locationError} Search will still work if you enter a city.
+              {locationError} Search is focused on Iloilo City for now.
             </p>
           )}
         </>
@@ -388,6 +406,37 @@ export function PlaceSearchForm({
         <p className="mt-4 rounded-2xl bg-[#edf8ef] px-4 py-3 text-sm text-[#367347]">
           {message}
         </p>
+      )}
+
+      {!isConvertingWishlist &&
+        !manualMode &&
+        !searching &&
+        query.trim() &&
+        results.length === 0 && (
+          <div className="mt-4 rounded-2xl border border-[#e9c5ae] bg-[#fff7ef] p-4">
+            <p className="text-sm font-semibold text-[#34251f]">
+              Can’t find this place?
+            </p>
+            <p className="mt-1 text-sm text-[#806f64]">
+              Add the restaurant name yourself, then use its nearby address to
+              put it on your private map.
+            </p>
+            <button
+              type="button"
+              onClick={() => setManualMode(true)}
+              className="mt-3 rounded-xl bg-[#34251f] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Add manually
+            </button>
+          </div>
+        )}
+
+      {!isConvertingWishlist && manualMode && (
+        <ManualPlaceForm
+          initialName={query.trim()}
+          location={location ?? DEFAULT_SEARCH_LOCATION}
+          onCancel={() => setManualMode(false)}
+        />
       )}
 
       {suggestion && (

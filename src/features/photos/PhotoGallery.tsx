@@ -1,23 +1,26 @@
 // Purpose: Display the private photos attached to a visit.
 
 import { useEffect, useState } from 'react'
-import { getVisitPhotos } from './photoService'
+import { deleteVisitPhoto, getVisitPhotos } from './photoService'
 import type { PhotoWithUrl } from './types'
 
 type PhotoGalleryProps = {
   spaceId: string
   visitId: string
   refreshKey: number
+  canDelete?: boolean
 }
 
 export function PhotoGallery({
   spaceId,
   visitId,
   refreshKey,
+  canDelete = false,
 }: PhotoGalleryProps) {
   const [photos, setPhotos] = useState<PhotoWithUrl[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -55,6 +58,36 @@ export function PhotoGallery({
     }
   }, [spaceId, visitId, refreshKey])
 
+  async function handleDeletePhoto(photo: PhotoWithUrl) {
+    const confirmed = window.confirm(
+      'Delete this photo? This cannot be undone.',
+    )
+
+    if (!confirmed) return
+
+    setError(null)
+    setDeletingPhotoId(photo.id)
+
+    try {
+      await deleteVisitPhoto({
+        spaceId,
+        photoId: photo.id,
+        storagePath: photo.storage_path,
+      })
+      setPhotos((currentPhotos) =>
+        currentPhotos.filter((currentPhoto) => currentPhoto.id !== photo.id),
+      )
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Unable to delete this photo.',
+      )
+    } finally {
+      setDeletingPhotoId(null)
+    }
+  }
+
   if (loading) {
     return (
       <p className="mt-3 text-sm text-[#806f64]">
@@ -81,15 +114,33 @@ export function PhotoGallery({
 
       <div className="mt-2 grid grid-cols-2 gap-2">
         {photos.map((photo) => (
-          <img
-            key={photo.id}
-            src={photo.signedUrl}
-            alt="Food memory"
-            loading="lazy"
-            className="aspect-square w-full rounded-2xl object-cover"
-          />
+          <div key={photo.id} className="relative">
+            <img
+              src={photo.signedUrl}
+              alt="Food memory"
+              loading="lazy"
+              className="aspect-square w-full rounded-2xl object-cover"
+            />
+
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => void handleDeletePhoto(photo)}
+                disabled={deletingPhotoId === photo.id}
+                aria-label="Delete photo"
+                title="Delete photo"
+                className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-[#34251f]/85 text-lg leading-none text-white shadow-sm hover:bg-[#ad3f2d] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deletingPhotoId === photo.id ? '…' : '×'}
+              </button>
+            )}
+          </div>
         ))}
       </div>
+
+      {error && (
+        <p className="mt-3 text-sm text-[#ad3f2d]">{error}</p>
+      )}
     </div>
   )
 }

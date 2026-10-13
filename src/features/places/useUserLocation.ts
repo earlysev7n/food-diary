@@ -5,7 +5,7 @@ import { getCurrentLocation, type UserLocation } from './location'
 
 export function useUserLocation() {
   const [location, setLocation] = useState<UserLocation | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const locate = useCallback(async () => {
@@ -30,8 +30,34 @@ export function useUserLocation() {
   }, [])
 
   useEffect(() => {
-    // Automatically try once when this screen opens.
-    void locate()
+    let mounted = true
+
+    async function loadPreviouslyGrantedLocation() {
+      // Do not trigger a permission prompt on page load. If the browser
+      // already granted access, reading the location is silent.
+      if (!navigator.permissions?.query) {
+        return
+      }
+
+      try {
+        const permission = await navigator.permissions.query({
+          name: 'geolocation',
+        })
+
+        if (mounted && permission.state === 'granted') {
+          void locate()
+        }
+      } catch {
+        // Some browsers do not expose geolocation permission state. In that
+        // case, wait for the user to press Refresh my location.
+      }
+    }
+
+    void loadPreviouslyGrantedLocation()
+
+    return () => {
+      mounted = false
+    }
   }, [locate])
 
   return {

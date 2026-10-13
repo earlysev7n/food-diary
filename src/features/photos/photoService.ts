@@ -119,3 +119,33 @@ export async function getVisitPhotos(
     }),
   )
 }
+
+export type DeleteVisitPhotoInput = {
+  spaceId: string
+  photoId: string
+  storagePath: string
+}
+
+export async function deleteVisitPhoto(
+  input: DeleteVisitPhotoInput,
+): Promise<void> {
+  // Remove the private file first so a deleted database row cannot leave an
+  // inaccessible image behind in Storage.
+  const { error: storageError } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .remove([input.storagePath])
+
+  if (storageError) {
+    throw storageError
+  }
+
+  const { error: photoError } = await supabase
+    .from('photos')
+    .delete()
+    .eq('id', input.photoId)
+    .eq('space_id', input.spaceId)
+
+  if (photoError) {
+    throw photoError
+  }
+}

@@ -203,6 +203,7 @@ export function VisitList() {
                   spaceId={activeSpace.id}
                   visitId={visit.id}
                   refreshKey={photoRefreshKey}
+                  canDelete={editingVisitId === visit.id}
                 />
               )}
 

@@ -9,7 +9,7 @@ export type CreatePlaceInput = {
   address: string
   latitude: number
   longitude: number
-  externalPlaceId: string
+  externalPlaceId: string | null
   status: PlaceStatus
   createdBy: string
 }
@@ -45,7 +45,7 @@ export type FindDuplicatePlaceInput = {
   address: string
   latitude: number
   longitude: number
-  externalPlaceId: string
+  externalPlaceId: string | null
 }
 
 function normalizePlaceText(value: string) {
@@ -71,6 +71,7 @@ export async function findDuplicatePlace(
   return (
     (data as Place[] | null)?.find((place) => {
       const sameExternalId =
+        input.externalPlaceId !== null &&
         place.external_place_id === input.externalPlaceId
       const sameName = normalizePlaceText(place.name) === normalizedName
       const sameAddress =

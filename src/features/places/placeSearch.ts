@@ -17,6 +17,17 @@ export type SearchLocation = UserLocation & {
   displayName: string | null
 }
 
+// The in-app browser used during local development does not expose device GPS.
+// Keep searches useful for this Iloilo-based diary until a manual search-area
+// selector is added.
+export const DEFAULT_SEARCH_LOCATION: SearchLocation = {
+  latitude: 10.7202,
+  longitude: 122.5621,
+  city: 'Iloilo City',
+  countryCode: 'ph',
+  displayName: 'Iloilo City, Philippines',
+}
+
 export function normalizeSearchQuery(value: string) {
   return value.trim().replace(/\s+/g, ' ')
 }
@@ -214,8 +225,8 @@ export async function searchPlaces(
   searchUrl.searchParams.set('namedetails', '1')
 
   if (location) {
-    // Bias results toward the user's current area without hard-blocking
-    // results outside the area when a local place is not mapped.
+    // Keep results inside the current area so an ambiguous name such as
+    // "FTI" cannot return an unrelated result from another country.
     const radius = 0.2
     searchUrl.searchParams.set(
       'viewbox',
@@ -226,9 +237,10 @@ export async function searchPlaces(
         location.latitude - radius,
       ].join(','),
     )
+    searchUrl.searchParams.set('bounded', '1')
 
     if (location.countryCode) {
-      // Restrict results to the detected country when reverse lookup worked.
+      // Restrict results to the detected/fallback country.
       searchUrl.searchParams.set('countrycodes', location.countryCode)
     }
   }
