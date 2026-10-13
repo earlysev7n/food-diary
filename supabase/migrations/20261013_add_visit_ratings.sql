@@ -20,6 +20,15 @@ alter table public.visit_ratings enable row level security;
 grant select, insert, update, delete on table public.visit_ratings
   to authenticated;
 
+drop policy if exists "Space members can view visit ratings"
+  on public.visit_ratings;
+drop policy if exists "Members can create their own visit ratings"
+  on public.visit_ratings;
+drop policy if exists "Members can update their own visit ratings"
+  on public.visit_ratings;
+drop policy if exists "Members can delete their own visit ratings"
+  on public.visit_ratings;
+
 create policy "Space members can view visit ratings"
   on public.visit_ratings
   for select
